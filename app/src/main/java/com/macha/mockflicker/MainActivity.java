@@ -7,12 +7,14 @@ import android.os.Bundle;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
@@ -20,6 +22,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.message.BasicNameValuePair;
+import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -37,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     private GenericUtil genericUtil = new GenericUtil();
     private Button loginButton;
+    private ProgressBar spinner;
     private ConstraintLayout constraintLayout;
     private String authSecret = "";
     private String finalAuthToken = "";
@@ -49,12 +53,15 @@ public class MainActivity extends AppCompatActivity {
 
         constraintLayout = (ConstraintLayout) findViewById(R.id.mainLayoutId);
 
+        spinner = (ProgressBar) findViewById(R.id.loginProgressBarId);
         loginButton = (Button) findViewById(R.id.loginButton);
 
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //startActivity(new Intent(MainActivity.this, OauthActivity.class));
+                loginButton.setVisibility(View.GONE);
+                spinner.setVisibility(View.VISIBLE);
                 try {
                     getRequestToken();
                 } catch (Exception e) {
@@ -236,6 +243,8 @@ public class MainActivity extends AppCompatActivity {
                     public void onResponse(String response) {
                         // Display the first 500 characters of the response string.
                         System.out.println("Response is: " + response.toString());
+
+                        makeGetRecentPhotosCall();
                     }
                 }, new Response.ErrorListener() {
             @Override
@@ -253,6 +262,44 @@ public class MainActivity extends AppCompatActivity {
 
         // Add the request to the RequestQueue.
         queue.add(stringRequest);
+    }
+
+
+    private void makeGetRecentPhotosCall() {
+
+        // Instantiate the RequestQueue.
+        RequestQueue queue = Volley.newRequestQueue(this);
+
+        StringBuilder url = new StringBuilder(Constants.flickApi);
+        url.append("flickr.photos.getRecent");
+        url.append("&api_key=" + Constants.apiKey);
+        url.append("&" + Constants.restFormat);
+        url.append("&nojsoncallback=1");
+
+        JSONObject jsonObject = new JSONObject();
+
+        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(Request.Method.GET, url.toString(), jsonObject,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject responseJsonObject) {
+                        System.out.println("Response is: " + responseJsonObject.toString());
+                    }
+                }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                String body = "";
+                try {
+                    body = new String(error.networkResponse.data,"UTF-8");
+                    System.out.println(body);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                System.out.println(error.getMessage());
+            }
+        });
+
+        // Add the request to the RequestQueue.
+        queue.add(jsonObjectRequest);
     }
 }
 
